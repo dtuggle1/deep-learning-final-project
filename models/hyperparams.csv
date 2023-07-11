@@ -1,0 +1,3 @@
+,Unnamed: 0,test_data_pct,learning_rate,bert_type,epochs,batch_size,max_len,device,data_file,test2,test3
+0,0.0,0.8,1e-05,distilbert,2,64,50,gpu,shuffled_data.csv,testing,
+1,,0.8,1e-5,distilbert,2,64,50,gpu,shuffled_data.csv,testing,testing2
