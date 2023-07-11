@@ -30,6 +30,7 @@ def train(train_data_loader, model, optimizer, epochs, device):
     end_train_time = dt.datetime.now()
     print(f'Training completed at: {end_train_time}')
     training_duration = end_train_time - start_train_time
+    training_duration = training_duration.total_seconds()
     training_duration_minutes = int(training_duration/60)
     training_hours = training_duration_minutes // 60
     training_minutes = training_duration_minutes %60
@@ -54,7 +55,7 @@ def save_model(model, config, training_duration):
     file_exists = os.path.isfile(model_metadata_path)
     local_model_metadata = copy.deepcopy(config)
 
-    local_model_metadata['time'] = time_now_str
+    local_model_metadata['timestamp'] = time_now_str
     training_hours = training_duration // 60
     training_minutes = training_duration %60
     local_model_metadata['training duration'] = f'{training_hours}:{training_minutes}'
@@ -64,7 +65,7 @@ def save_model(model, config, training_duration):
         model_metadata_df = pd.read_csv(model_metadata_path)
     else:
         model_metadata_df = pd.DataFrame()
-    model_metadata_df = pd.concat([model_metadata_df, pd.DataFrame(config, index=[0])], ignore_index=True)
+    model_metadata_df = pd.concat([model_metadata_df, pd.DataFrame(local_model_metadata, index=[0])], ignore_index=True)
     model_metadata_df.to_csv(model_metadata_path)
 
 if __name__ == '__main__':
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     device = pick_device(config)
     torch.cuda.empty_cache()
     data = load_data('data', config['data_file'])
-    tokenizer, model, optimizer = load_model(config['bert_type'], config['learning_rate'], device)
+    tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
     train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=config['test_data_pct'], max_len=config['max_len'], batch_size=config['batch_size'])
     model, training_duration = train(train_data_loader, model, optimizer, config['epochs'], device)
     save_model(model, config, training_duration)
