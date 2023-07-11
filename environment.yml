@@ -15,4 +15,5 @@ dependencies:
     - spacy
     - transformers
     - pandas
+    - sklearn
 

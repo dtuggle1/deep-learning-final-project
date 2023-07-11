@@ -53,15 +53,15 @@ def process_data(data, tokenizer, test_size, max_len, batch_size):
     return train_data_loader, val_data_loader
 
 
-def load_model(bert_type, learning_rate):
-    if bert_type == 'bert_base':
+def load_model(bert_type, learning_rate, device):
+    if bert_type == 'bert-base':
         tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
         model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased').to(device)
-        optimizer = torch.optim.AdamW(bert_model.parameters(), lr=learning_rate)
-    elif bert_type == 'dilbert':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+    elif bert_type == 'distilbert':
         tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
         model = transformers.DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased').to(device)
-        optimizer = torch.optim.AdamW(bert_model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     else:
         raise ValueError(f'{bert_type} not supported')
     return tokenizer, model, optimizer
