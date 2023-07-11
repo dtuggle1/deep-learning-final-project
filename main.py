@@ -5,14 +5,18 @@ import yaml
 import pprint
 import copy
 import time
+import datetime as dt
 
 CONFIG = 'bert_1.yml'
 CRITERION = torch.nn.CrossEntropyLoss()
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
+MACHINE_USED = 'dereks_desktop'
 
 def train(train_data_loader, model, optimizer, epochs, device):
+    start_train_time = dt.datetime.now()
+    print(f'Starting training at {start_train_time}')
     for epoch in range(epochs):
-        print(f'epoch: {epoch}')
+        print(f'Epoch: {epoch+1}/{epochs}')
         for batch in train_data_loader:
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
@@ -23,7 +27,14 @@ def train(train_data_loader, model, optimizer, epochs, device):
             loss = CRITERION(outputs.logits, labels)
             loss.backward()
             optimizer.step()
-    return model
+    end_train_time = dt.datetime.now()
+    print(f'Training completed at: {end_train_time}')
+    training_duration = end_train_time - start_train_time
+    training_duration_minutes = int(training_duration/60)
+    training_hours = training_duration_minutes // 60
+    training_minutes = training_duration_minutes %60
+    print(f"Training duration: {training_hours}:{training_minutes}")
+    return model, training_duration_minutes
 
 def pick_device(config):
     if config['device'] == 'gpu':
@@ -35,14 +46,20 @@ def pick_device(config):
         device = torch.device(device_type)
     return device
 
-def save_model(model, config):
+def save_model(model, config, training_duration):
     time_now_str = str(time.time()).replace('.','_')
     torch.save(model, os.path.join('models',f'{time_now_str}.pth'))
 
     model_metadata_path = os.path.join('models', MODEL_METADATA_FILENAME)
     file_exists = os.path.isfile(model_metadata_path)
     local_model_metadata = copy.deepcopy(config)
+
     local_model_metadata['time'] = time_now_str
+    training_hours = training_duration // 60
+    training_minutes = training_duration %60
+    local_model_metadata['training duration'] = f'{training_hours}:{training_minutes}'
+    local_model_metadata['device'] = MACHINE_USED
+
     if file_exists:
         model_metadata_df = pd.read_csv(model_metadata_path)
     else:
@@ -57,10 +74,9 @@ if __name__ == '__main__':
     pprint.pprint(config)
     device = pick_device(config)
     torch.cuda.empty_cache()
-    # device = torch.device("cpu")
     data = load_data('data', config['data_file'])
     tokenizer, model, optimizer = load_model(config['bert_type'], config['learning_rate'], device)
     train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=config['test_data_pct'], max_len=config['max_len'], batch_size=config['batch_size'])
-    model = train(train_data_loader, model, optimizer, config['epochs'], device)
-    save_model(model, config)
+    model, training_duration = train(train_data_loader, model, optimizer, config['epochs'], device)
+    save_model(model, config, training_duration)
 
