@@ -70,7 +70,7 @@ def evaluate(model, data_loader, device):
             predictions.extend(local_predictions)
             labels.extend(local_labels)
     accuracy = correct/total
-    report = classification_report(labels, predictions, zero_division=0)
+    # report = classification_report(labels, predictions, zero_division=0)
     return accuracy
 
 def pick_device(config):
@@ -116,14 +116,14 @@ if __name__ == '__main__':
     tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
     train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=config['test_data_pct'], max_len=config['max_len'], batch_size=config['batch_size'])
     accuracies = {}
-    accuracies['initial train'] = evaluate(model, train_data_loader, device)
+    # accuracies['initial train'] = evaluate(model, train_data_loader, device)
     accuracies['initial test'] = evaluate(model, test_data_loader, device)
-    print("Initial Training Set Accuracy: ", accuracies['initial train'])
+    # print("Initial Training Set Accuracy: ", accuracies['initial train'])
     print("Initial Testing Set Accuracy: ", accuracies['initial test'])
     model, training_duration = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device, accuracies)
-    accuracies['final train'] = evaluate(model, train_data_loader, device)
+    # accuracies['final train'] = evaluate(model, train_data_loader, device)
     accuracies['final test'] = evaluate(model, test_data_loader, device)
-    print("Final Training Set Accuracy: ", accuracies['final train'])
+    # print("Final Training Set Accuracy: ", accuracies['final train'])
     print("Final Testing Set Accuracy: ", accuracies['final train'])
 
     save_model(model, config, training_duration, accuracies)
