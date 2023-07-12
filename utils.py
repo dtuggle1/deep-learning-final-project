@@ -57,11 +57,16 @@ def load_model(bert_type, learning_rate, device):
     if bert_type == 'bert-base':
         tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
         model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased').to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     elif bert_type == 'distilbert':
         tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
         model = transformers.DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased').to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+    elif bert_type == 'albert':
+        tokenizer = transformers.AlbertTokenizer.from_pretrained('albert-base-v2')
+        model = transformers.AlbertForSequenceClassification.from_pretrained('albert-base-v2').to(device)
+    elif bert_type == 'tinybert':
+        tokenizer = transformers.DistilBertTokenizer.from_pretrained('prajjwall/tinybert')
+        model = transformers.DistilBertForSequenceClassification.from_pretrained('prajjwall/tinybert').to(device)
     else:
         raise ValueError(f'{bert_type} not supported')
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     return tokenizer, model, optimizer
