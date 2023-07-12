@@ -23,9 +23,10 @@ class TextClassificationDataset(Dataset):
             add_special_tokens=True,
             max_length=self.max_len,
             return_token_type_ids=False,
-            pad_to_max_length=True,
+            padding='max_length',
             return_attention_mask=True,
             return_tensors='pt',
+            truncation=True,
         )
         return {
             'text': text,
@@ -64,8 +65,8 @@ def load_model(bert_type, learning_rate, device):
         tokenizer = transformers.AlbertTokenizer.from_pretrained('albert-base-v2')
         model = transformers.AlbertForSequenceClassification.from_pretrained('albert-base-v2').to(device)
     elif bert_type == 'tinybert':
-        tokenizer = transformers.DistilBertTokenizer.from_pretrained('prajjwall/tinybert')
-        model = transformers.DistilBertForSequenceClassification.from_pretrained('prajjwall/tinybert').to(device)
+        tokenizer = transformers.BertTokenizer.from_pretrained('prajjwal1/bert-tiny')
+        model = transformers.BertForSequenceClassification.from_pretrained('prajjwal1/bert-tiny').to(device)
     else:
         raise ValueError(f'{bert_type} not supported')
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)

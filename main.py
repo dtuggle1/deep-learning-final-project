@@ -6,6 +6,7 @@ import pprint
 import copy
 import time
 import datetime as dt
+from sklearn.metrics import classification_report
 
 CONFIG = 'bert_1.yml'
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
@@ -44,27 +45,32 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
 
 def evaluate(model, data_loader, device):
     model_eval = model.eval()
-    return 1
     correct = 0
     total = 0
 
+    predictions = []
+    labels = []
 
     with torch.no_grad():
         for batch in data_loader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].to(device)
+            local_labels = batch["labels"].to(device)
 
             outputs = model_eval(
                 input_ids=input_ids,
                 attention_mask=attention_mask
             )
 
-            _, preds = torch.max(outputs.logits, dim=1)
+            _, local_predictions = torch.max(outputs.logits, dim=1)
 
-            correct += torch.sum(preds == labels)
-            total += labels.shape[0]
+            correct += torch.sum(local_predictions == local_labels)
+            total += local_labels.shape[0]
+
+            predictions.extend(local_predictions)
+            labels.extend(local_labels)
     accuracy = correct/total
+    report = classification_report(labels, predictions, zero_division=0)
     return accuracy
 
 def pick_device(config):

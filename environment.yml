@@ -16,4 +16,5 @@ dependencies:
     - transformers
     - pandas
     - sklearn
+    - sentencepiece
 
