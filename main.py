@@ -124,6 +124,6 @@ if __name__ == '__main__':
     # accuracies['final train'] = evaluate(model, train_data_loader, device)
     accuracies['final test'] = evaluate(model, test_data_loader, device)
     # print("Final Training Set Accuracy: ", accuracies['final train'])
-    print("Final Testing Set Accuracy: ", accuracies['final train'])
+    print("Final Testing Set Accuracy: ", accuracies['final test'])
 
     save_model(model, config, training_duration, accuracies)
