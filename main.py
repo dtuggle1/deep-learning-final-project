@@ -12,9 +12,9 @@ CONFIG = 'bert_1.yml'
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
 MACHINE_USED = 'dereks_desktop'
 EVALUATE_TRAIN_DATA = False
-EVALUATE_TEST_DATA = False
+EVALUATE_TEST_DATA = True
 EVALUATE_INITIAL_DATA = False
-EVALUATE_FINAL_DATA = False
+EVALUATE_FINAL_DATA = True
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
@@ -73,9 +73,10 @@ def evaluate(model, data_loader, device):
 
             predictions.extend(local_predictions)
             labels.extend(local_labels)
+            # break
     accuracy = correct/total
     # report = classification_report(labels, predictions, zero_division=0)
-    return accuracy
+    return accuracy.item()
 
 def pick_device(config):
     if config['device'] == 'gpu':

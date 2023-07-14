@@ -6,4 +6,5 @@
 4,0.8,1e-05,distilbert,1,64,5,dereks_desktop,shuffled_data.csv,1689125743_5276573,0:4,1.0,1.0,1.0,1.0
 5,0.8,1e-05,tinybert,1,64,5,dereks_desktop,shuffled_data.csv,1689126304_0838249,0:4,1.0,1.0,1.0,1.0
 6,0.8,1e-05,tinybert,9,64,100,dereks_desktop,shuffled_data.csv,1689285469_4161174,0:43,,"tensor(0.4914, device='cuda:0')",,"tensor(0.9851, device='cuda:0')"
-7,0.8,1e-4,tinybert,0,64,130,dereks_desktop,shuffled_data.csv,1689296851_1885235,0:0,,,,
+7,0.8,0.0001,tinybert,0,64,130,dereks_desktop,shuffled_data.csv,1689296851_1885235,0:0,,,,
+8,0.8,1e-4,tinybert,0,64,130,dereks_desktop,shuffled_data.csv,1689297076_358543,0:0,,,,
