@@ -1,8 +1,8 @@
 test_data_pct: 0.8
 learning_rate: 1e-4
 bert_type: 'tinybert' #['distilbert', 'bert-base', 'albert', 'tinybert']
-epochs: 9
+epochs: 15
 batch_size: 64
-max_len: 150
+max_len: 200
 device: 'gpu'
 data_file: 'shuffled_data.csv'
