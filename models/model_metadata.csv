@@ -1,7 +1,12 @@
-,Unnamed: 0.4,Unnamed: 0.3,Unnamed: 0.2,Unnamed: 0.1,Unnamed: 0,test_data_pct,learning_rate,bert_type,epochs,batch_size,max_len,device,data_file,timestamp,training duration,initial train,initial test,final train,final test
-0,0.0,0.0,0.0,0.0,0.0,0.8,1e-05,distilbert,0,64,50,dereks_desktop,shuffled_data.csv,1689112312_709919,0:0,,,,
-1,1.0,1.0,1.0,1.0,,0.8,1e-05,distilbert,2,64,50,dereks_desktop,shuffled_data.csv,1689115123_2748365,0:20,,,,
-2,2.0,2.0,2.0,,,0.8,1e-05,distilbert,0,64,5,dereks_desktop,shuffled_data.csv,1689125041_4645019,0:0,1.0,1.0,1.0,1.0
-3,3.0,3.0,,,,0.8,1e-05,albert,0,64,5,dereks_desktop,shuffled_data.csv,1689125070_1014593,0:0,1.0,1.0,1.0,1.0
-4,4.0,,,,,0.8,1e-05,distilbert,1,64,5,dereks_desktop,shuffled_data.csv,1689125743_5276573,0:4,1.0,1.0,1.0,1.0
-5,,,,,,0.8,1e-5,tinybert,1,64,5,dereks_desktop,shuffled_data.csv,1689126304_0838249,0:4,1.0,1.0,1.0,1.0
+,test_data_pct,learning_rate,bert_type,epochs,batch_size,max_len,device,data_file,timestamp,training duration,initial train,initial test,final train,final test
+0,0.8,1e-05,distilbert,0,64,50,dereks_desktop,shuffled_data.csv,1689112312_709919,0:0,,,,
+1,0.8,1e-05,distilbert,2,64,50,dereks_desktop,shuffled_data.csv,1689115123_2748365,0:20,,,,
+2,0.8,1e-05,distilbert,0,64,5,dereks_desktop,shuffled_data.csv,1689125041_4645019,0:0,1.0,1.0,1.0,1.0
+3,0.8,1e-05,albert,0,64,5,dereks_desktop,shuffled_data.csv,1689125070_1014593,0:0,1.0,1.0,1.0,1.0
+4,0.8,1e-05,distilbert,1,64,5,dereks_desktop,shuffled_data.csv,1689125743_5276573,0:4,1.0,1.0,1.0,1.0
+5,0.8,1e-05,tinybert,1,64,5,dereks_desktop,shuffled_data.csv,1689126304_0838249,0:4,1.0,1.0,1.0,1.0
+6,0.8,1e-05,tinybert,9,64,100,dereks_desktop,shuffled_data.csv,1689285469_4161174,0:43,,"tensor(0.4914, device='cuda:0')",,"tensor(0.9851, device='cuda:0')"
+7,0.8,0.0001,tinybert,0,64,130,dereks_desktop,shuffled_data.csv,1689296851_1885235,0:0,,,,
+8,0.8,0.0001,tinybert,0,64,130,dereks_desktop,shuffled_data.csv,1689297076_358543,0:0,,,,
+9,0.8,0.0001,tinybert,9,64,150,dereks_desktop,shuffled_data.csv,1689300836_869866,0:48,,,,0.9991000294685364
+10,0.8,1e-4,tinybert,15,64,200,dereks_desktop,shuffled_data.csv,1689308412_7489612,1:23,,,,0.9996166825294495
