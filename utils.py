@@ -50,7 +50,7 @@ def load_data(folder, path):
 def process_data(data, tokenizer, test_size, max_len, batch_size):
     train_data, val_data = train_test_split(data, test_size=test_size)
     train_data_loader = create_data_loader(train_data, tokenizer, max_len, batch_size)
-    val_data_loader = create_data_loader(train_data, tokenizer, max_len, batch_size)
+    val_data_loader = create_data_loader(val_data, tokenizer, max_len, batch_size)
     return train_data_loader, val_data_loader
 
 
