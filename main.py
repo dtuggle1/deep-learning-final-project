@@ -21,7 +21,17 @@ EVALUATE_FINAL_DATA = False
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
-def train(train_data_loader, test_data_loader, model, optimizer, epochs, device, accuracies):
+def update_output_table(metric_report, table, stage, epoch=True):
+    for metric_key in metric_report.keys():
+        if epoch:
+            table_key = f'Epoch {stage}'
+        else:
+            table_key = stage
+        table[f'{table_key} {metric_key}'] = metric_report[metric_key]
+    return table
+
+def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
+          output_table):
     start_train_time = dt.datetime.now()
     print(f'Starting training at {start_train_time}')
     for epoch in range(epochs):
@@ -38,11 +48,15 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
             optimizer.step()
         if EVALUATE_EACH_EPOCH:
             if EVALUATE_TRAIN_DATA:
-                accuracies[f'Epoch {epoch+1} Train'] = evaluate(model, train_data_loader, device)
-                print("Training Set Accuracy: ", accuracies[f'Epoch {epoch+1} Train'])
+                evaluate_report = evaluate(model, train_data_loader, device)
+                output_table = update_output_table(copy.deepcopy(evaluate_report),
+                                            output_table, epoch, epoch=True)
+                print("Training Set Accuracy: ", evaluate_report['accuracy'])
             if EVALUATE_TEST_DATA:
-                accuracies[f'Epoch {epoch + 1} Test'] = evaluate(model, test_data_loader, device)
-                print("Testing Set Accuracy: ", accuracies[f'Epoch {epoch+1} Test'])
+                evaluate_report = evaluate(model, test_data_loader, device)
+                output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                    epoch, epoch=True)
+                print("Testing Set Accuracy: ", evaluate_report['accuracy'])
     end_train_time = dt.datetime.now()
     print(f'Training completed at: {end_train_time}')
     training_duration = end_train_time - start_train_time
@@ -51,7 +65,7 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
     training_hours = training_duration_minutes // 60
     training_minutes = training_duration_minutes %60
     print(f"Training duration: {training_hours}:{training_minutes}")
-    return model, training_duration_minutes, accuracies
+    return model, training_duration_minutes, output_table
 
 def evaluate(model, data_loader, device):
     model = model.eval()
@@ -153,24 +167,31 @@ def main(config):
     tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
     train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=config['test_data_pct'],
                                                        max_len=config['max_len'], batch_size=config['batch_size'])
-    accuracies = {}
+    output_table = {}
     if EVALUATE_INITIAL_DATA:
         if EVALUATE_TRAIN_DATA:
             evaluate_report = evaluate(model, train_data_loader, device)
-            accuracies['initial train'] = evaluate(model, train_data_loader, device)
-            print("Initial Training Set Accuracy: ", accuracies['initial train'])
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'initial train', epoch=False)
+            print("Initial Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
-            accuracies['initial test'] = evaluate(model, test_data_loader, device)
-            print("Initial Testing Set Accuracy: ", accuracies['initial test'])
+            evaluate_report = evaluate(model, test_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'initial test', epoch=False)
+            print("Initial Testing Set Accuracy: ", evaluate_report['accuracy'])
     model, training_duration, accuracies = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device,
-                                     accuracies)
+                                     output_table)
     if EVALUATE_FINAL_DATA:
         if EVALUATE_TRAIN_DATA:
-            accuracies['final train'] = evaluate(model, train_data_loader, device)
-            print("Final Training Set Accuracy: ", accuracies['final train'])
+            evaluate_report = evaluate(model, train_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'final train', epoch=False)
+            print("Final Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
-            accuracies['final test'] = evaluate(model, test_data_loader, device)
-            print("Final Testing Set Accuracy: ", accuracies['final test'])
+            evaluate_report = evaluate(model, test_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'final test', epoch=False)
+            print("Final Testing Set Accuracy: ", evaluate_report['accuracy'])
 
     save_model(model, config, training_duration, accuracies)
 
