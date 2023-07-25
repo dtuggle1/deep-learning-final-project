@@ -7,9 +7,10 @@ import copy
 import time
 import datetime as dt
 from sklearn.metrics import classification_report
+
 CSV_CONFIG = True
 YAML_CONFIG = False
-CONFIG = 'Config table - Sheet1.csv'
+CONFIG = 'bert_1.yml'
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
 MACHINE_USED = 'dereks_desktop'
 EVALUATE_TRAIN_DATA = True
@@ -53,35 +54,58 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
     return model, training_duration_minutes, accuracies
 
 def evaluate(model, data_loader, device):
-    model_eval = model.eval()
-    correct = 0
-    total = 0
+    model = model.eval()
 
-    predictions = []
-    labels = []
+    correct_predictions = 0
+    total_predictions = 0
+    total_log_prob = 0.0
 
+    all_preds = []
+    all_labels = []
+    dloader_index = 0
     with torch.no_grad():
-        for batch in data_loader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            local_labels = batch["labels"].to(device)
+        for d in data_loader:
+            input_ids = d["input_ids"].to(device)
+            attention_mask = d["attention_mask"].to(device)
+            labels = d["labels"].to(device)
 
-            outputs = model_eval(
+            outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask
             )
 
-            _, local_predictions = torch.max(outputs.logits, dim=1)
+            _, preds = torch.max(outputs.logits, dim=1)
+            correct_predictions += torch.sum(preds == labels)
+            total_predictions += labels.shape[0]
 
-            correct += torch.sum(local_predictions == local_labels)
-            total += local_labels.shape[0]
+            # Compute the total_log_prob
+            for i, label in enumerate(labels):
+                total_log_prob += outputs.logits[i, label].item()
 
-            predictions.extend(local_predictions)
-            labels.extend(local_labels)
-            # break
-    accuracy = correct/total
-    # report = classification_report(labels, predictions, zero_division=0)
-    return accuracy.item()
+            all_preds.extend(preds.tolist())
+            all_labels.extend(labels.tolist())
+            dloader_index +=1
+            if dloader_index >=5:
+                break
+
+    accuracy = correct_predictions.double() / total_predictions
+    total_log_prob_tensor = torch.tensor(-total_log_prob / total_predictions,
+                                         device=device)
+    perplexity = torch.exp(total_log_prob_tensor).item()
+
+    print(f"Accuracy: {accuracy}")
+    print(f"Perplexity: {perplexity}")
+
+    # If you want to compute precision, recall, f1-score, you'll need to accumulate all_preds and all_labels outside the loop.
+    # report = classification_report(all_labels, all_preds, zero_division=0)
+    # print(report)
+
+    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0)
+    report = report['1']
+    report['accuracy'] = accuracy.item()
+    report['perplexity'] = perplexity
+
+    return report
 
 def pick_device(config):
     if config['device'] == 'gpu':
@@ -132,6 +156,7 @@ def main(config):
     accuracies = {}
     if EVALUATE_INITIAL_DATA:
         if EVALUATE_TRAIN_DATA:
+            evaluate_report = evaluate(model, train_data_loader, device)
             accuracies['initial train'] = evaluate(model, train_data_loader, device)
             print("Initial Training Set Accuracy: ", accuracies['initial train'])
         if EVALUATE_TEST_DATA:
@@ -149,19 +174,31 @@ def main(config):
 
     save_model(model, config, training_duration, accuracies)
 
+def evaluate_model_test():
+    with open(os.path.join('configs', CONFIG), 'r') as file:
+        config = yaml.safe_load(file)
+    device = pick_device(config)
+    torch.cuda.empty_cache()
+    data = load_data('data', config['data_file'])
+    tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
+    train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=0.05,
+                                                       max_len=config['max_len'], batch_size=config['batch_size'])
+    evaluate(model, test_data_loader, device)
+
 if __name__ == '__main__':
-    if CSV_CONFIG:
-        configs = pd.read_csv(os.path.join('configs', CONFIG))
-        config_idx = 0
-        for _, row in configs.iterrows():
-            print('config index: ', config_idx)
-            try:
-                config = copy.deepcopy(row.to_dict())
-                main(config)
-            except:
-                print('config did not work')
-            config_idx +=1
-    elif YAML_CONFIG:
-        with open(os.path.join('configs', CONFIG), 'r') as file:
-            config = yaml.safe_load(file)
-        main(config)
+    evaluate_model_test()
+    # if CSV_CONFIG:
+    #     configs = pd.read_csv(os.path.join('configs', CONFIG))
+    #     config_idx = 0
+    #     for _, row in configs.iterrows():
+    #         print('config index: ', config_idx)
+    #         try:
+    #             config = copy.deepcopy(row.to_dict())
+    #             main(config)
+    #         except:
+    #             print('config did not work')
+    #         config_idx +=1
+    # elif YAML_CONFIG:
+    #     with open(os.path.join('configs', CONFIG), 'r') as file:
+    #         config = yaml.safe_load(file)
+    #     main(config)
