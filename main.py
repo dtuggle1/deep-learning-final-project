@@ -9,13 +9,14 @@ import datetime as dt
 from sklearn.metrics import classification_report
 CSV_CONFIG = True
 YAML_CONFIG = False
-CONFIG = 'bert_1.yml'
+CONFIG = 'Config table - Sheet1.csv'
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
 MACHINE_USED = 'dereks_desktop'
-EVALUATE_TRAIN_DATA = False
+EVALUATE_TRAIN_DATA = True
 EVALUATE_TEST_DATA = True
-EVALUATE_INITIAL_DATA = False
-EVALUATE_FINAL_DATA = True
+EVALUATE_INITIAL_DATA = True
+EVALUATE_EACH_EPOCH = True
+EVALUATE_FINAL_DATA = False
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
@@ -34,10 +35,13 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
             loss = CRITERION(outputs.logits, labels)
             loss.backward()
             optimizer.step()
-        # accuracies[f'Epoch {epoch+1} Train'] = evaluate(model, train_data_loader, device)
-        # accuracies[f'Epoch {epoch+1} Test'] = evaluate(model, test_data_loader, device)
-        # print("Training Set Accuracy: ", accuracies[f'Epoch {epoch+1} Train'])
-        # print("Testing Set Accuracy: ", accuracies[f'Epoch {epoch+1} Test'])
+        if EVALUATE_EACH_EPOCH:
+            if EVALUATE_TRAIN_DATA:
+                accuracies[f'Epoch {epoch+1} Train'] = evaluate(model, train_data_loader, device)
+                print("Training Set Accuracy: ", accuracies[f'Epoch {epoch+1} Train'])
+            if EVALUATE_TEST_DATA:
+                accuracies[f'Epoch {epoch + 1} Test'] = evaluate(model, test_data_loader, device)
+                print("Testing Set Accuracy: ", accuracies[f'Epoch {epoch+1} Test'])
     end_train_time = dt.datetime.now()
     print(f'Training completed at: {end_train_time}')
     training_duration = end_train_time - start_train_time
@@ -46,7 +50,7 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
     training_hours = training_duration_minutes // 60
     training_minutes = training_duration_minutes %60
     print(f"Training duration: {training_hours}:{training_minutes}")
-    return model, training_duration_minutes
+    return model, training_duration_minutes, accuracies
 
 def evaluate(model, data_loader, device):
     model_eval = model.eval()
@@ -133,7 +137,7 @@ def main(config):
         if EVALUATE_TEST_DATA:
             accuracies['initial test'] = evaluate(model, test_data_loader, device)
             print("Initial Testing Set Accuracy: ", accuracies['initial test'])
-    model, training_duration = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device,
+    model, training_duration, accuracies = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device,
                                      accuracies)
     if EVALUATE_FINAL_DATA:
         if EVALUATE_TRAIN_DATA:
@@ -148,9 +152,15 @@ def main(config):
 if __name__ == '__main__':
     if CSV_CONFIG:
         configs = pd.read_csv(os.path.join('configs', CONFIG))
+        config_idx = 0
         for _, row in configs.iterrows():
-            config = copy.deepcopy(row.to_dict())
-            main(config)
+            print('config index: ', config_idx)
+            try:
+                config = copy.deepcopy(row.to_dict())
+                main(config)
+            except:
+                print('config did not work')
+            config_idx +=1
     elif YAML_CONFIG:
         with open(os.path.join('configs', CONFIG), 'r') as file:
             config = yaml.safe_load(file)
