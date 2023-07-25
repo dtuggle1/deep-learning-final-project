@@ -131,7 +131,7 @@ def pick_device(config):
         device = torch.device(device_type)
     return device
 
-def save_model(model, config, training_duration, accuracies):
+def save_model(model, config, training_duration, output_table):
     time_now_str = str(time.time()).replace('.','_')
     torch.save(model, os.path.join('models',f'{time_now_str}.pth'))
 
@@ -144,7 +144,7 @@ def save_model(model, config, training_duration, accuracies):
     training_minutes = training_duration %60
     local_model_metadata['training duration'] = f'{training_hours}:{training_minutes}'
     local_model_metadata['device'] = MACHINE_USED
-    local_model_metadata.update(accuracies)
+    local_model_metadata.update(output_table)
 
     if file_exists:
         model_metadata_df = pd.read_csv(model_metadata_path)
@@ -193,7 +193,7 @@ def main(config):
                                 'final test', epoch=False)
             print("Final Testing Set Accuracy: ", evaluate_report['accuracy'])
 
-    save_model(model, config, training_duration, accuracies)
+    save_model(model, config, training_duration, output_table)
 
 def evaluate_model_test():
     with open(os.path.join('configs', CONFIG), 'r') as file:
