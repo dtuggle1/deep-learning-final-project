@@ -207,19 +207,19 @@ def evaluate_model_test():
     evaluate(model, test_data_loader, device)
 
 if __name__ == '__main__':
-    evaluate_model_test()
-    # if CSV_CONFIG:
-    #     configs = pd.read_csv(os.path.join('configs', CONFIG))
-    #     config_idx = 0
-    #     for _, row in configs.iterrows():
-    #         print('config index: ', config_idx)
-    #         try:
-    #             config = copy.deepcopy(row.to_dict())
-    #             main(config)
-    #         except:
-    #             print('config did not work')
-    #         config_idx +=1
-    # elif YAML_CONFIG:
-    #     with open(os.path.join('configs', CONFIG), 'r') as file:
-    #         config = yaml.safe_load(file)
-    #     main(config)
+    # evaluate_model_test()
+    if CSV_CONFIG:
+        configs = pd.read_csv(os.path.join('configs', CONFIG))
+        config_idx = 0
+        for _, row in configs.iterrows():
+            print('config index: ', config_idx)
+            try:
+                config = copy.deepcopy(row.to_dict())
+                main(config)
+            except:
+                print('config did not work')
+            config_idx +=1
+    elif YAML_CONFIG:
+        with open(os.path.join('configs', CONFIG), 'r') as file:
+            config = yaml.safe_load(file)
+        main(config)
