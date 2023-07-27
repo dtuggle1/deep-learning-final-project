@@ -110,6 +110,9 @@ def evaluate(model, data_loader, device):
 
             all_preds.extend(preds.tolist())
             all_labels.extend(labels.tolist())
+            dloader_index +=1
+            if dloader_index >=5:
+                break
 
     accuracy = correct_predictions.double() / total_predictions
     total_log_prob_tensor = torch.tensor(-total_log_prob / total_predictions,
@@ -119,11 +122,7 @@ def evaluate(model, data_loader, device):
     print(f"Accuracy: {accuracy}")
     print(f"Perplexity: {perplexity}")
 
-    # If you want to compute precision, recall, f1-score, you'll need to accumulate all_preds and all_labels outside the loop.
-    # report = classification_report(all_labels, all_preds, zero_division=0)
-    # print(report)
-
-    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0)
+    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0) # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html
     report = report['1']
     report['accuracy'] = accuracy.item()
     report['perplexity'] = perplexity
