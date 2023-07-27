@@ -10,7 +10,7 @@ from sklearn.metrics import classification_report
 
 CSV_CONFIG = True
 YAML_CONFIG = False
-CONFIG = 'bert_1.yml'
+CONFIG = 'Config table - Sheet1.csv'
 MODEL_METADATA_FILENAME = 'model_metadata.csv'
 MACHINE_USED = 'dereks_desktop'
 EVALUATE_TRAIN_DATA = True
@@ -21,12 +21,14 @@ EVALUATE_FINAL_DATA = False
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
-def update_output_table(metric_report, table, stage, epoch=True):
+def update_output_table(metric_report, table, stage, epoch=True, additional_string=''):
     for metric_key in metric_report.keys():
         if epoch:
             table_key = f'Epoch {stage}'
         else:
             table_key = stage
+        if additional_string != '':
+            table_key = f'{table_key} {additional_string} '
         table[f'{table_key} {metric_key}'] = metric_report[metric_key]
     return table
 
@@ -50,13 +52,16 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
             if EVALUATE_TRAIN_DATA:
                 evaluate_report = evaluate(model, train_data_loader, device)
                 output_table = update_output_table(copy.deepcopy(evaluate_report),
-                                            output_table, epoch, epoch=True)
-                print("Training Set Accuracy: ", evaluate_report['accuracy'])
+                                            output_table, epoch, epoch=True, additional_string='train')
+                print("Training Set Report: ")
+                pprint.pprint(evaluate_report)
             if EVALUATE_TEST_DATA:
                 evaluate_report = evaluate(model, test_data_loader, device)
                 output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                    epoch, epoch=True)
-                print("Testing Set Accuracy: ", evaluate_report['accuracy'])
+                                    epoch, epoch=True, additional_string='train')
+                print("Testing Set Report: ")
+                pprint.pprint(evaluate_report)
+
     end_train_time = dt.datetime.now()
     print(f'Training completed at: {end_train_time}')
     training_duration = end_train_time - start_train_time
@@ -172,12 +177,12 @@ def main(config):
         if EVALUATE_TRAIN_DATA:
             evaluate_report = evaluate(model, train_data_loader, device)
             output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                'initial train', epoch=False)
+                                'initial train', epoch=False, additional_string='train')
             print("Initial Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
             evaluate_report = evaluate(model, test_data_loader, device)
             output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                'initial test', epoch=False)
+                                'initial test', epoch=False, additional_string='test')
             print("Initial Testing Set Accuracy: ", evaluate_report['accuracy'])
     model, training_duration, accuracies = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device,
                                      output_table)
@@ -185,12 +190,12 @@ def main(config):
         if EVALUATE_TRAIN_DATA:
             evaluate_report = evaluate(model, train_data_loader, device)
             output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                'final train', epoch=False)
+                                'final train', epoch=False, additional_string='train')
             print("Final Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
             evaluate_report = evaluate(model, test_data_loader, device)
             output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                'final test', epoch=False)
+                                'final test', epoch=False, additional_string='test')
             print("Final Testing Set Accuracy: ", evaluate_report['accuracy'])
 
     save_model(model, config, training_duration, output_table)
@@ -212,7 +217,7 @@ if __name__ == '__main__':
         configs = pd.read_csv(os.path.join('configs', CONFIG))
         config_idx = 0
         for _, row in configs.iterrows():
-            print('config index: ', config_idx)
+            config = copy.deepcopy(row.to_dict())
             try:
                 config = copy.deepcopy(row.to_dict())
                 main(config)
