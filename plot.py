@@ -103,7 +103,7 @@ if __name__ == '__main__':
         plot_dict = PLOTS[key]
         standard_plot(data, plot_dict)
     plot_metrics_best_model(data)
-    epoch_plot(data)
+    # epoch_plot(data)
 # Final accuracy vs different learning rates
 # adjusting batch size. Batch size vs final accuracy
 # changing max len. Max len vs final accuracy
