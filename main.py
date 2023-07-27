@@ -21,6 +21,13 @@ EVALUATE_FINAL_DATA = False
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
+
+# RESOURCES USED:
+# https://www.kaggle.com/code/harshjain123/bert-for-everyone-tutorial-implementation
+# https://huggingface.co/docs/transformers/installation
+# https://www.tensorflow.org/text/tutorials/classify_text_with_bert
+
+
 def update_output_table(metric_report, table, stage, epoch=True, additional_string=''):
     for metric_key in metric_report.keys():
         if epoch:
@@ -93,8 +100,8 @@ def evaluate(model, data_loader, device):
                 attention_mask=attention_mask
             )
 
-            _, preds = torch.max(outputs.logits, dim=1)
-            correct_predictions += torch.sum(preds == labels)
+            _, preds = torch.max(outputs.logits, dim=1) # https://discuss.pytorch.org/t/how-does-one-get-the-predicted-classification-label-from-a-pytorch-model/91649
+            correct_predictions += torch.sum(preds == labels) # https://stackoverflow.com/questions/62958248/calculate-accuracy-for-each-class-using-cnn-and-pytorch
             total_predictions += labels.shape[0]
 
             # Compute the total_log_prob
@@ -103,9 +110,6 @@ def evaluate(model, data_loader, device):
 
             all_preds.extend(preds.tolist())
             all_labels.extend(labels.tolist())
-            dloader_index +=1
-            if dloader_index >=5:
-                break
 
     accuracy = correct_predictions.double() / total_predictions
     total_log_prob_tensor = torch.tensor(-total_log_prob / total_predictions,

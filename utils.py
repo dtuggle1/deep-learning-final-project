@@ -5,7 +5,7 @@ import transformers
 from sklearn.model_selection import train_test_split
 import torch
 
-class TextClassificationDataset(Dataset):
+class TextClassificationDataset(Dataset): # https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
     def __init__(self, texts, labels, tokenizer, max_len):
         self.texts = texts
         self.labels = labels
@@ -56,16 +56,16 @@ def process_data(data, tokenizer, test_size, max_len, batch_size):
 
 def load_model(bert_type, learning_rate, device):
     if bert_type == 'bert-base':
-        tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+        tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased') # https://huggingface.co/bert-base-uncased
         model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased').to(device)
     elif bert_type == 'distilbert':
-        tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased') # https://huggingface.co/distilbert-base-uncased
         model = transformers.DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased').to(device)
     elif bert_type == 'albert':
-        tokenizer = transformers.AlbertTokenizer.from_pretrained('albert-base-v2')
+        tokenizer = transformers.AlbertTokenizer.from_pretrained('albert-base-v2') # https://huggingface.co/albert-base-v2
         model = transformers.AlbertForSequenceClassification.from_pretrained('albert-base-v2').to(device)
     elif bert_type == 'tinybert':
-        tokenizer = transformers.BertTokenizer.from_pretrained('prajjwal1/bert-tiny')
+        tokenizer = transformers.BertTokenizer.from_pretrained('prajjwal1/bert-tiny') # https://huggingface.co/prajjwal1/bert-tiny
         model = transformers.BertForSequenceClassification.from_pretrained('prajjwal1/bert-tiny').to(device)
     else:
         raise ValueError(f'{bert_type} not supported')
