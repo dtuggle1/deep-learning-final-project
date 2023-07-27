@@ -3,3 +3,4 @@ test_data_pct,learning_rate,bert_type,epochs,batch_size,max_len,device,data_file
 0.2,0.0001,tinybert,9,64,5,gpu,shuffled_data.csv
 0.2,0.0001,tinybert,9,64,400,gpu,shuffled_data.csv
 0.2,0.0001,tinybert,15,64,200,gpu,shuffled_data.csv
+0.2,0.0001,tinybert,9,64,200,gpu,shuffled_data.csv

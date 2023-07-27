@@ -58,7 +58,7 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
             if EVALUATE_TEST_DATA:
                 evaluate_report = evaluate(model, test_data_loader, device)
                 output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
-                                    epoch, epoch=True, additional_string='train')
+                                    epoch, epoch=True, additional_string='test')
                 print("Testing Set Report: ")
                 pprint.pprint(evaluate_report)
 

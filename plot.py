@@ -2,14 +2,16 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
-MODEL_METADATA_FILENAME = 'model_metadata.csv'
+MODEL_METADATA_FILE = os.path.join('models','model_metadata.csv')
+OUTPUT_FOLDER = 'outputs'
+BEST_MODEL_INDEX = 29
 
 PLOTS = {
     'Learning Rate':
         {
             'idea_key': 'vary learning rates',
             'x_data': 'learning_rate',
-            'y_data': 'final test',
+            'y_data': 'Epoch 8 test  accuracy',
             'xlabel': 'Learning Rate',
             'ylabel': 'Test Set Accuracy (%)',
             'title': 'Learning Rate vs. Test Set Accuracy',
@@ -19,17 +21,17 @@ PLOTS = {
         {
             'idea_key': 'change batch size',
             'x_data': 'batch_size',
-            'y_data': 'final test',
+            'y_data': 'Epoch 8 test  accuracy',
             'xlabel': 'Batch Size',
             'ylabel': 'Test Set Accuracy (%)',
-            'title': 'Batfh Size vs. Test Set Accuracy',
+            'title': 'Batch Size vs. Test Set Accuracy',
             'exclude_param': 'batch_size'
         },
     'Max Len':
         {
             'idea_key': 'change max len',
             'x_data': 'max_len',
-            'y_data': 'final test',
+            'y_data': 'Epoch 8 test  accuracy',
             'xlabel': 'Max Length (tokens)',
             'ylabel': 'Test Set Accuracy (%)',
             'title': 'Max Length vs. Test Set Accuracy',
@@ -37,33 +39,36 @@ PLOTS = {
         },
 }
 
+
 def strip_data(data,idea_key):
-    return data.loc[data['idea'] == idea_key]
+    return data.loc[data['idea'].str.contains(idea_key, na = False)]
 
 def standard_plot(data, plot_dict):
-    local_data = strip_data(data, plot_dict['idea key'])
+    local_data = strip_data(data, plot_dict['idea_key'])
     plt.figure()
     plt.scatter(local_data[plot_dict['x_data']], local_data[plot_dict['y_data']])
     plt.xlabel(plot_dict['xlabel'])
     plt.ylabel(plot_dict['ylabel'])
+    if plot_dict['xlabel'] == 'Learning Rate':
+        plt.xscale('log')
     plt.title(plot_dict['title'])
-    plt.savefig(f'{plot_dict["title"]}.png')
+    plt.savefig(os.path.join(OUTPUT_FOLDER, f'{plot_dict["title"]}.png'))
 
 def epoch_plot(data):
     local_data = strip_data(data, 'change epochs')
-    row_indeces = [5,10]
     plt.figure()
     col_key_2 = 'accuracy'
-    for row_index in row_indeces:
-        row_data = local_data[row_index]
+    for row_index in range(len(local_data)):
+        row_data = local_data.iloc[row_index]
+        # row_data = local_data.loc[row_index]
         for col_key_1 in ['test', 'train']:
             epochs, y_data, plot_keys = get_data_from_epochs(col_key_1, col_key_2, row_data)
-            plt.plot(epochs, y_data, label = f'Epochs: {epochs[-1]}')
+            plt.plot(epochs, y_data, label = f'{col_key_1.capitalize()}, Epochs: {epochs[-1]}')
     plt.xlabel('Epochs')
     plt.legend()
-    plt.ylabel('Test Accuracy (%)')
-    plt.title('Test Accuracy vs Epochs')
-    plt.savefig('Test Accuracy vs Epochs.png')
+    plt.ylabel('Accuracy (%)')
+    plt.title('Test and Train Accuracies over Training')
+    plt.savefig(os.path.join(OUTPUT_FOLDER, 'Test and Train Accuracies over Training.png'))
 
 def get_data_from_epochs(col_key_1, col_key_2, df):
     plot_keys = []
@@ -73,12 +78,12 @@ def get_data_from_epochs(col_key_1, col_key_2, df):
         if 'epoch' in key.lower() and col_key_1 in key.lower() and col_key_2 in \
                 key.lower():
             plot_keys.append(key)
-            epochs.append(int(key[6]))
+            epochs.append(int(key[6])+1)
             y_data.append(df[key])
     return epochs, y_data, plot_keys
 
-def plot_metrics_best_model(data, best_model_index=5):
-    data_local = data[best_model_index]
+def plot_metrics_best_model(data):
+    data_local = data.loc[BEST_MODEL_INDEX]
     metrics = ['perplexity', 'recall', 'f1-score', 'support', 'precision']
     data_types = ['train', 'test']
     for metric in metrics:
@@ -87,15 +92,18 @@ def plot_metrics_best_model(data, best_model_index=5):
             epochs, y_data, plot_keys = get_data_from_epochs(metric, data_type, data_local)
             plt.plot(epochs, y_data, label=data_type)
             plt.xlabel('Epoch')
-            plt.ylabel(metric)
-            plt.title(f'{metric} Change over Epochs for Best Model')
-            plt.savefig(f'{metric} Change over Epochs for Best Model.png')
+            plt.ylabel(metric.capitalize())
+            title = f'Best Model {metric.capitalize()} Over Training'
+            plt.title(title)
+            plt.savefig(os.path.join(OUTPUT_FOLDER, f'{title}.png'))
+
 if __name__ == '__main__':
-    data = pd.read_csv(os.path.join('data', MODEL_METADATA_FILENAME))
+    data = pd.read_csv(MODEL_METADATA_FILE)
     for key in PLOTS:
         plot_dict = PLOTS[key]
-        standard_plot(plot_dict)
-
+        standard_plot(data, plot_dict)
+    plot_metrics_best_model(data)
+    epoch_plot(data)
 # Final accuracy vs different learning rates
 # adjusting batch size. Batch size vs final accuracy
 # changing max len. Max len vs final accuracy
