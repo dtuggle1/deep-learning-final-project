@@ -7,6 +7,7 @@ import copy
 import time
 import datetime as dt
 from sklearn.metrics import classification_report
+
 CSV_CONFIG = True
 YAML_CONFIG = False
 CONFIG = 'Config table - Sheet1.csv'
@@ -20,7 +21,26 @@ EVALUATE_FINAL_DATA = False
 
 CRITERION = torch.nn.CrossEntropyLoss()
 
-def train(train_data_loader, test_data_loader, model, optimizer, epochs, device, accuracies):
+
+# RESOURCES USED:
+# https://www.kaggle.com/code/harshjain123/bert-for-everyone-tutorial-implementation
+# https://huggingface.co/docs/transformers/installation
+# https://www.tensorflow.org/text/tutorials/classify_text_with_bert
+
+
+def update_output_table(metric_report, table, stage, epoch=True, additional_string=''):
+    for metric_key in metric_report.keys():
+        if epoch:
+            table_key = f'Epoch {stage}'
+        else:
+            table_key = stage
+        if additional_string != '':
+            table_key = f'{table_key} {additional_string} '
+        table[f'{table_key} {metric_key}'] = metric_report[metric_key]
+    return table
+
+def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
+          output_table):
     start_train_time = dt.datetime.now()
     print(f'Starting training at {start_train_time}')
     for epoch in range(epochs):
@@ -37,11 +57,18 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
             optimizer.step()
         if EVALUATE_EACH_EPOCH:
             if EVALUATE_TRAIN_DATA:
-                accuracies[f'Epoch {epoch+1} Train'] = evaluate(model, train_data_loader, device)
-                print("Training Set Accuracy: ", accuracies[f'Epoch {epoch+1} Train'])
+                evaluate_report = evaluate(model, train_data_loader, device)
+                output_table = update_output_table(copy.deepcopy(evaluate_report),
+                                            output_table, epoch, epoch=True, additional_string='train')
+                print("Training Set Report: ")
+                pprint.pprint(evaluate_report)
             if EVALUATE_TEST_DATA:
-                accuracies[f'Epoch {epoch + 1} Test'] = evaluate(model, test_data_loader, device)
-                print("Testing Set Accuracy: ", accuracies[f'Epoch {epoch+1} Test'])
+                evaluate_report = evaluate(model, test_data_loader, device)
+                output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                    epoch, epoch=True, additional_string='test')
+                print("Testing Set Report: ")
+                pprint.pprint(evaluate_report)
+
     end_train_time = dt.datetime.now()
     print(f'Training completed at: {end_train_time}')
     training_duration = end_train_time - start_train_time
@@ -50,38 +77,57 @@ def train(train_data_loader, test_data_loader, model, optimizer, epochs, device,
     training_hours = training_duration_minutes // 60
     training_minutes = training_duration_minutes %60
     print(f"Training duration: {training_hours}:{training_minutes}")
-    return model, training_duration_minutes, accuracies
+    return model, training_duration_minutes, output_table
 
 def evaluate(model, data_loader, device):
-    model_eval = model.eval()
-    correct = 0
-    total = 0
+    model = model.eval()
 
-    predictions = []
-    labels = []
+    correct_predictions = 0
+    total_predictions = 0
+    total_log_prob = 0.0
 
+    all_preds = []
+    all_labels = []
+    dloader_index = 0
     with torch.no_grad():
-        for batch in data_loader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            local_labels = batch["labels"].to(device)
+        for d in data_loader:
+            input_ids = d["input_ids"].to(device)
+            attention_mask = d["attention_mask"].to(device)
+            labels = d["labels"].to(device)
 
-            outputs = model_eval(
+            outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask
             )
 
-            _, local_predictions = torch.max(outputs.logits, dim=1)
+            _, preds = torch.max(outputs.logits, dim=1) # https://discuss.pytorch.org/t/how-does-one-get-the-predicted-classification-label-from-a-pytorch-model/91649
+            correct_predictions += torch.sum(preds == labels) # https://stackoverflow.com/questions/62958248/calculate-accuracy-for-each-class-using-cnn-and-pytorch
+            total_predictions += labels.shape[0]
 
-            correct += torch.sum(local_predictions == local_labels)
-            total += local_labels.shape[0]
+            # Compute the total_log_prob
+            for i, label in enumerate(labels):
+                total_log_prob += outputs.logits[i, label].item()
 
-            predictions.extend(local_predictions)
-            labels.extend(local_labels)
-            # break
-    accuracy = correct/total
-    # report = classification_report(labels, predictions, zero_division=0)
-    return accuracy.item()
+            all_preds.extend(preds.tolist())
+            all_labels.extend(labels.tolist())
+            dloader_index +=1
+            if dloader_index >=5:
+                break
+
+    accuracy = correct_predictions.double() / total_predictions
+    total_log_prob_tensor = torch.tensor(-total_log_prob / total_predictions,
+                                         device=device)
+    perplexity = torch.exp(total_log_prob_tensor).item()
+
+    print(f"Accuracy: {accuracy}")
+    print(f"Perplexity: {perplexity}")
+
+    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0) # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html
+    report = report['1']
+    report['accuracy'] = accuracy.item()
+    report['perplexity'] = perplexity
+
+    return report
 
 def pick_device(config):
     if config['device'] == 'gpu':
@@ -93,7 +139,7 @@ def pick_device(config):
         device = torch.device(device_type)
     return device
 
-def save_model(model, config, training_duration, accuracies):
+def save_model(model, config, training_duration, output_table):
     time_now_str = str(time.time()).replace('.','_')
     torch.save(model, os.path.join('models',f'{time_now_str}.pth'))
 
@@ -106,7 +152,7 @@ def save_model(model, config, training_duration, accuracies):
     training_minutes = training_duration %60
     local_model_metadata['training duration'] = f'{training_hours}:{training_minutes}'
     local_model_metadata['device'] = MACHINE_USED
-    local_model_metadata.update(accuracies)
+    local_model_metadata.update(output_table)
 
     if file_exists:
         model_metadata_df = pd.read_csv(model_metadata_path)
@@ -129,32 +175,52 @@ def main(config):
     tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
     train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=config['test_data_pct'],
                                                        max_len=config['max_len'], batch_size=config['batch_size'])
-    accuracies = {}
+    output_table = {}
     if EVALUATE_INITIAL_DATA:
         if EVALUATE_TRAIN_DATA:
-            accuracies['initial train'] = evaluate(model, train_data_loader, device)
-            print("Initial Training Set Accuracy: ", accuracies['initial train'])
+            evaluate_report = evaluate(model, train_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'initial train', epoch=False, additional_string='train')
+            print("Initial Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
-            accuracies['initial test'] = evaluate(model, test_data_loader, device)
-            print("Initial Testing Set Accuracy: ", accuracies['initial test'])
+            evaluate_report = evaluate(model, test_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'initial test', epoch=False, additional_string='test')
+            print("Initial Testing Set Accuracy: ", evaluate_report['accuracy'])
     model, training_duration, accuracies = train(train_data_loader, test_data_loader, model, optimizer, config['epochs'], device,
-                                     accuracies)
+                                     output_table)
     if EVALUATE_FINAL_DATA:
         if EVALUATE_TRAIN_DATA:
-            accuracies['final train'] = evaluate(model, train_data_loader, device)
-            print("Final Training Set Accuracy: ", accuracies['final train'])
+            evaluate_report = evaluate(model, train_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'final train', epoch=False, additional_string='train')
+            print("Final Training Set Accuracy: ", evaluate_report['accuracy'])
         if EVALUATE_TEST_DATA:
-            accuracies['final test'] = evaluate(model, test_data_loader, device)
-            print("Final Testing Set Accuracy: ", accuracies['final test'])
+            evaluate_report = evaluate(model, test_data_loader, device)
+            output_table = update_output_table(copy.deepcopy(evaluate_report), output_table,
+                                'final test', epoch=False, additional_string='test')
+            print("Final Testing Set Accuracy: ", evaluate_report['accuracy'])
 
-    save_model(model, config, training_duration, accuracies)
+    save_model(model, config, training_duration, output_table)
+
+def evaluate_model_test():
+    with open(os.path.join('configs', CONFIG), 'r') as file:
+        config = yaml.safe_load(file)
+    device = pick_device(config)
+    torch.cuda.empty_cache()
+    data = load_data('data', config['data_file'])
+    tokenizer, model, optimizer = load_model(config['bert_type'], float(config['learning_rate']), device)
+    train_data_loader, test_data_loader = process_data(data, tokenizer, test_size=0.05,
+                                                       max_len=config['max_len'], batch_size=config['batch_size'])
+    evaluate(model, test_data_loader, device)
 
 if __name__ == '__main__':
+    # evaluate_model_test()
     if CSV_CONFIG:
         configs = pd.read_csv(os.path.join('configs', CONFIG))
         config_idx = 0
         for _, row in configs.iterrows():
-            print('config index: ', config_idx)
+            config = copy.deepcopy(row.to_dict())
             try:
                 config = copy.deepcopy(row.to_dict())
                 main(config)
