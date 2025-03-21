@@ -1,10 +1,17 @@
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
+import re
+import copy
+import numpy as np
 
-MODEL_METADATA_FILE = os.path.join('models','model_metadata.csv')
+MODEL_METADATA_FILE = os.path.join('models','model_metadata - model_metadata.csv')
 OUTPUT_FOLDER = 'outputs'
-BEST_MODEL_INDEX = 29
+BEST_MODEL_INDEX = 9
+
+plt.rcParams['font.size'] = 14
+plt.rcParams['axes.titlesize'] = 20
+plt.rcParams['axes.labelsize'] = 18
 
 PLOTS = {
     'Learning Rate':
@@ -51,8 +58,7 @@ def standard_plot(data, plot_dict):
     plt.ylabel(plot_dict['ylabel'])
     if plot_dict['xlabel'] == 'Learning Rate':
         plt.xscale('log')
-    plt.title(plot_dict['title'])
-    plt.savefig(os.path.join(OUTPUT_FOLDER, f'{plot_dict["title"]}.png'))
+    plt.savefig(os.path.join(OUTPUT_FOLDER, f'{plot_dict["title"]}.png'),bbox_inches='tight')
 
 def epoch_plot(data):
     local_data = strip_data(data, 'change epochs')
@@ -63,12 +69,14 @@ def epoch_plot(data):
         # row_data = local_data.loc[row_index]
         for col_key_1 in ['test', 'train']:
             epochs, y_data, plot_keys = get_data_from_epochs(col_key_1, col_key_2, row_data)
-            plt.plot(epochs, y_data, label = f'{col_key_1.capitalize()}, Epochs: {epochs[-1]}')
+            plt.plot(epochs, y_data, label = f'{col_key_1.capitalize()}, Epochs: '
+                                             f'{copy.deepcopy(epochs[-1])}')
     plt.xlabel('Epochs')
     plt.legend()
     plt.ylabel('Accuracy (%)')
     plt.title('Test and Train Accuracies over Training')
-    plt.savefig(os.path.join(OUTPUT_FOLDER, 'Test and Train Accuracies over Training.png'))
+    plt.savefig(os.path.join(OUTPUT_FOLDER, 'Test and Train Accuracies over '
+                                            'Training.png'),bbox_inches='tight')
 
 def get_data_from_epochs(col_key_1, col_key_2, df):
     plot_keys = []
@@ -77,25 +85,31 @@ def get_data_from_epochs(col_key_1, col_key_2, df):
     for key in df.keys():
         if 'epoch' in key.lower() and col_key_1 in key.lower() and col_key_2 in \
                 key.lower():
+            if str(df[key]) == 'nan':
+                continue
             plot_keys.append(key)
-            epochs.append(int(key[6])+1)
+            epoch = re.search(r'\d+', key)
+            epoch = int(epoch.group())+1
+            epochs.append(epoch)
             y_data.append(df[key])
     return epochs, y_data, plot_keys
 
 def plot_metrics_best_model(data):
     data_local = data.loc[BEST_MODEL_INDEX]
-    metrics = ['perplexity', 'recall', 'f1-score', 'support', 'precision']
+    metrics = ['perplexity', 'recall', 'f1-score', 'support', 'precision', 'accuracy']
     data_types = ['train', 'test']
     for metric in metrics:
         plt.figure()
         for data_type in data_types:
             epochs, y_data, plot_keys = get_data_from_epochs(metric, data_type, data_local)
-            plt.plot(epochs, y_data, label=data_type)
+            plt.plot(epochs, y_data, label=data_type.capitalize())
             plt.xlabel('Epoch')
             plt.ylabel(metric.capitalize())
+            plt.legend()
             title = f'Best Model {metric.capitalize()} Over Training'
             plt.title(title)
-            plt.savefig(os.path.join(OUTPUT_FOLDER, f'{title}.png'))
+            plt.savefig(os.path.join(OUTPUT_FOLDER, f'{title}.png'),
+                        bbox_inches='tight')
 
 if __name__ == '__main__':
     data = pd.read_csv(MODEL_METADATA_FILE)
@@ -103,7 +117,7 @@ if __name__ == '__main__':
         plot_dict = PLOTS[key]
         standard_plot(data, plot_dict)
     plot_metrics_best_model(data)
-    # epoch_plot(data)
+    epoch_plot(data)
 # Final accuracy vs different learning rates
 # adjusting batch size. Batch size vs final accuracy
 # changing max len. Max len vs final accuracy
